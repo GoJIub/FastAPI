@@ -1,28 +1,37 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import fires, temperatures, weather, warehouses
-from app.database import Base, engine
+from app.database import engine, Base
+from app.routes import fires, weather, warehouses, temperatures, supplies
 
-# Создание таблиц в БД
-Base.metadata.create_all(bind=engine)
-
-app = FastAPI(title="Coal Calendar API")
+# Создаем инстанс приложения FastAPI
+app = FastAPI(
+    title="Coal Storage Fire API",
+    description="API для системы мониторинга и прогнозирования возгораний угольных складов",
+    version="1.0.0"
+)
 
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшне замените на конкретные домены
+    allow_origins=["*"],  # В production лучше указать конкретные домены
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Подключение роутов
-app.include_router(fires.router, prefix="/api", tags=["fires"])
-app.include_router(temperatures.router, prefix="/api", tags=["temperatures"])
-app.include_router(weather.router, prefix="/api", tags=["weather"])
-app.include_router(warehouses.router, prefix="/api", tags=["warehouses"])
+# Создаем таблицы в базе данных
+Base.metadata.create_all(bind=engine)
 
-@app.get("/api/test")
-def test_api():
-    return {"status": "ok", "message": "API работает корректно"}
+# Подключаем роутеры
+app.include_router(fires.router, tags=["Fires"])
+app.include_router(weather.router, tags=["Weather"])
+app.include_router(warehouses.router, tags=["Warehouses"])
+app.include_router(temperatures.router, tags=["Temperatures"])
+app.include_router(supplies.router, tags=["Supplies"])
+
+@app.get("/")
+async def root():
+    return {"message": "Coal Storage Fire API is running"}
+
+# Для запуска используйте команду:
+# uvicorn main:app --reload
