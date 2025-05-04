@@ -3,5 +3,4 @@ uvicorn
 psycopg2-binary
 sqlalchemy
 pandas
-python-cors
 pydantic
