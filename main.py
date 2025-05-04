@@ -1,25 +1,25 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, text
 import pandas as pd
-from table_for_predicting import processing_work_table
 from pydantic import BaseModel
+from table_for_predicting import processing_work_table
 
 app = FastAPI()
 
-# Настройка CORS для фронтенда
+# Настройка CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://your-frontend-domain.com"],  # Укажи домены фронтенда
+    allow_origins=["http://localhost:3000", "https://your-frontend-domain.com"],  # Укажи домен фронтенда
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # URL базы данных (возьми из Railway)
-DATABASE_URL = "postgresql://user:password@host:port/dbname"  # Замени на свой
+DATABASE_URL = "postgresql://user:password@host:port/dbname"  # Замени на свои данные
 
-# Функции из твоего кода
+# Твои функции
 def save_dataframe_to_db(csv_file_path, table_name, db_url):
     df = pd.read_csv(csv_file_path)
     engine = create_engine(db_url)
@@ -34,19 +34,16 @@ def create_work_table(db_url):
         connection.execute(text(f'DROP TABLE IF EXISTS {table_name};'))
     df.to_sql(table_name, engine, if_exists='replace', index=False)
 
-# Модель для валидации входных данных (если фронт отправляет CSV или параметры)
+# Pydantic модель для валидации
 class CsvInput(BaseModel):
-    csv_file_path: str
     table_name: str
 
-# Эндпоинт для получения данных из working_table
+# Эндпоинт для получения прогнозов
 @app.get("/api/forecast")
 async def get_forecast():
-    engine = create_engine(DATABASE_URL)
     try:
-        # Читаем данные из таблицы working_table
+        engine = create_engine(DATABASE_URL)
         df = pd.read_sql("SELECT * FROM working_table", engine)
-        # Преобразуем DataFrame в список словарей для JSON-ответа
         return df.to_dict(orient="records")
     except Exception as e:
         return {"error": str(e)}
@@ -60,12 +57,14 @@ async def create_work_table_endpoint():
     except Exception as e:
         return {"error": str(e)}
 
-# Эндпоинт для загрузки CSV в базу
+# Эндпоинт для загрузки CSV-файла
 @app.post("/api/upload-csv")
-async def upload_csv(data: CsvInput):
+async def upload_csv(table_name: str, file: UploadFile = File(...)):
     try:
-        save_dataframe_to_db(data.csv_file_path, data.table_name, DATABASE_URL)
-        return {"message": f"CSV uploaded to {data.table_name} successfully"}
+        df = pd.read_csv(file.file)
+        engine = create_engine(DATABASE_URL)
+        df.to_sql(table_name, engine, if_exists='replace', index=False)
+        return {"message": f"CSV uploaded to {table_name} successfully"}
     except Exception as e:
         return {"error": str(e)}
 
