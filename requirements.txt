@@ -1,6 +1,7 @@
-fastapi>=0.95.0
-pydantic>=2.0.0
-uvicorn>=0.15.0
-sqlalchemy>=2.0.0
-psycopg2-binary>=2.9.5
-python-dotenv>=1.0.0
+fastapi
+uvicorn
+psycopg2-binary
+sqlalchemy
+pandas
+python-cors
+pydantic
